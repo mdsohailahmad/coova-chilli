@@ -1034,6 +1034,10 @@ int dhcp_new(struct dhcp_t **pdhcp, int numconn, int hashsize,
     return -1;
   }
 
+#ifdef HAVE_NETFILTER_COOVA
+  if(!_options.kname && !_options.bridgemode) {
+#endif
+
   if (net_init(&dhcp->rawif[0], interface,
 #ifdef ETH_P_ALL
 	       ETH_P_ALL,
@@ -1044,6 +1048,10 @@ int dhcp_new(struct dhcp_t **pdhcp, int numconn, int hashsize,
     free(dhcp);
     return -1;
   }
+
+#ifdef HAVE_NETFILTER_COOVA
+  }
+#endif
 
 #ifdef ENABLE_MULTILAN
   {
@@ -5276,6 +5284,14 @@ int dhcp_decaps_cb(void *pctx, struct pkt_buffer *pb) {
            MAC_ARG(ethh->src),
            MAC_ARG(ethh->dst),
            prot, (int)prot, length);
+  }
+#endif
+
+#ifdef HAVE_NETFILTER_COOVA
+  if(_options.kname && _options.bridgemode) {
+	  ignore = 1;
+	  if(_options.debug)
+		  syslog(LOG_DEBUG, "dhcp_decaps_cb: ignoring packet because bridgemode is enabled");
   }
 #endif
 

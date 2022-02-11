@@ -14,6 +14,11 @@ run_down() {
     
     # site specific stuff optional
     [ -e @SYSCONFDIR@/chilli/ipdown.sh ] && . @SYSCONFDIR@/chilli/ipdown.sh
+
+    #Disable DHCP Interface in kernel and bridge mode
+    if [[ -n $KNAME ]]; then
+       [[ -z $BRIDGEMODE ]] && ifconfig $DHCPIF 0.0.0.0
+    fi
 }
 
 FLOCK=$(which flock)
