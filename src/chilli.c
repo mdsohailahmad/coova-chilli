@@ -786,6 +786,13 @@ int runscript(struct app_conn_t *appconn, char* script,
     return 0;
   }
 
+  unsigned ip_octet_array[4];
+  char tc_classid[5];
+
+  sscanf(inet_ntoa(appconn->hisip), "%u.%u.%u.%u", &ip_octet_array[0], &ip_octet_array[1], &ip_octet_array[2], &ip_octet_array[3]);
+  snprintf(tc_classid, 5, "%u", ip_octet_array[0] + ip_octet_array[1] + ip_octet_array[2] + ip_octet_array[3]);
+
+
 #ifdef ENABLE_LAYER3
   if (_options.layer3)
     set_env("LAYER3", VAL_STRING, "1", 0);
@@ -798,6 +805,7 @@ int runscript(struct app_conn_t *appconn, char* script,
   set_env("NAS_IP_ADDRESS", VAL_IN_ADDR,&_options.radiuslisten, 0);
   set_env("SERVICE_TYPE", VAL_STRING, "1", 0);
   set_env("FRAMED_IP_ADDRESS", VAL_IN_ADDR, &appconn->hisip, 0);
+  set_env("CLASS_ID", VAL_STRING, tc_classid, strlen(tc_classid));
   set_env("FILTER_ID", VAL_STRING, appconn->s_params.filteridbuf, 0);
   set_env("STATE", VAL_STRING, appconn->s_state.redir.statebuf, appconn->s_state.redir.statelen);
   set_env("CLASS", VAL_STRING, appconn->s_state.redir.classbuf, appconn->s_state.redir.classlen);
