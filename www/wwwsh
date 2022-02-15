@@ -33,5 +33,12 @@ if [ ${CONTENT_LENGTH:-0} -gt 0 ]; then
     $haserl $file < $POST_FILE
     /bin/rm -f $POST_FILE
 else
-    $haserl $file
+    RESP_FILE=/tmp/coovaresp.$$
+    $haserl --shell=/bin/bash $file > $RESP_FILE 
+    response_bytes=$(wc -c /tmp/response.$$ | awk '{ print $1 }')
+    echo -e -n "HTTP/1.0 200 OK\r\n"
+    echo -e -n "Content-Type: text/html; charset=utf-8\r\n"
+    echo -e -n "Content-Length: $response_bytes\r\n\r\n"
+    cat $RESP_FILE 
+    /bin/rm -f $RESP_FILE 
 fi
