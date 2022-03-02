@@ -35,7 +35,7 @@ if [ ${CONTENT_LENGTH:-0} -gt 0 ]; then
 else
     RESP_FILE=/tmp/coovaresp.$$
     $haserl --shell=/bin/bash $file > $RESP_FILE 
-    response_bytes=$(wc -c /tmp/response.$$ | awk '{ print $1 }')
+    response_bytes=$(wc -c $RESP_FILE | awk '{ print $1 }')
     echo -e -n "HTTP/1.0 200 OK\r\n"
     echo -e -n "Content-Type: text/html; charset=utf-8\r\n"
     echo -e -n "Content-Length: $response_bytes\r\n\r\n"
