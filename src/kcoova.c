@@ -93,18 +93,22 @@ kmod_coova_sync(void) {
       continue;
     }
 
-    if (sscanf(line,
+  if (sscanf(line,
          "mac=%X-%X-%X-%X-%X-%X "
          "src=%s state=%u "
          "bin=%llu bout=%llu "
          "pin=%llu pout=%llu",
          &maci[0], &maci[1], &maci[2], &maci[3], &maci[4], &maci[5],
          ip, &state, &bin, &bout, &pin, &pout) == 12) {
-      uint8_t mac[6];
-      int i;
+  uint8_t mac[6];
+  int i;
+  uint16_t uni_mac = 0;
+  struct in_addr in_ip;
 
-      for (i=0;i<6;i++)
+  for (i=0;i<6;i++){
         mac[i]=maci[i]&0xFF;
+	uni_mac += mac[i];
+  }
 
 #ifdef ENABLE_LAYER3
       if (_options.layer3) {
@@ -132,6 +136,27 @@ kmod_coova_sync(void) {
         }
       } else {
 #endif
+
+
+      if(!inet_aton(ip, in_ip)) //Invalid ip address
+           continue;
+
+      if(!in_ip.s_addr){
+           syslog(LOG_ERR, "Ignoring mac record" MAC_FMT ", Invalid IP is %s",
+                                                             MAC_ARG(mac), inet_ntoa(in_ip));
+           continue;
+      }
+
+      if(mac[0] & 0x01 || !uni_mac){
+	      /*Delete Zero MAC record*/
+	      if(!dhcp_getconn (dhcp, &conn, mac, NULL, 0)) {
+		      syslog(LOG_INFO, "Releasing zero mac record" MAC_FMT ", IP is %s",
+				      MAC_ARG(mac), inet_ntoa(in_ip));
+		      dhcp_freeconn (conn, RADIUS_TERMINATE_CAUSE_USER_ERROR);
+	      }
+	      continue;
+      }
+
       if (!dhcp_getconn(dhcp, &conn, mac, NULL, _options.bridgemode)) {
 	   struct app_conn_t *appconn = conn->peer;
 
