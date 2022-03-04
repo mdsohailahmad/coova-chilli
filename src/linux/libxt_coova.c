@@ -14,6 +14,7 @@ static const struct option coova_opts[] = {
 	{ .name = "name",    .has_arg = 1, .flag = 0, .val = 201 },
 	{ .name = "source",  .has_arg = 0, .flag = 0, .val = 202 },
 	{ .name = "dest",    .has_arg = 0, .flag = 0, .val = 203 },
+	{ .name = "checkclient",    .has_arg = 0, .flag = 0, .val = 204 },
 	{ .name = 0, 	     .has_arg = 0, .flag = 0, .val = 0  }
 };
 
@@ -24,6 +25,7 @@ static void coova_help(void)
 "    --name name                 Name of the table to be used. 'chilli' used if none given.\n"
 "    --source                    Indicates the source direction (lookup by source MAC/IP)\n"
 "    --dest                      Indicates the reply (lookup by dest address).\n"
+"    --checkclient               Matches rule based on authentication state\n"
 "xt_coova by: David Bird (Coova Technologies) <support@coova.com>.  http://coova.github.io/CoovaChilli\n");
 }
 
@@ -40,6 +42,8 @@ static int coova_parse(int c, char **argv, int invert, unsigned int *flags,
 			struct xt_entry_match **match)
 {
 	struct xt_coova_mtinfo *info = (void *)(*match)->data;
+        info->check = 0;
+        info->invert = invert;
 
 	switch (c) {
 		case 201:
@@ -54,6 +58,10 @@ static int coova_parse(int c, char **argv, int invert, unsigned int *flags,
 
 		case 203:
 			info->side = XT_COOVA_DEST;
+			break;
+
+		case 203:
+			info->check = 1;
 			break;
 
 		default:
@@ -80,6 +88,8 @@ static void coova_print(const void *ip, const struct xt_entry_match *match,
 		printf("side: source ");
 	if (info->side == XT_COOVA_DEST)
 		printf("side: dest");
+        if (info->check)
+                printf("checkclient ");
 }
 
 static void coova_save(const void *ip, const struct xt_entry_match *match)
@@ -93,6 +103,9 @@ static void coova_save(const void *ip, const struct xt_entry_match *match)
 		printf("--source ");
 	if (info->side == XT_COOVA_DEST)
 		printf("--dest ");
+        if (info->check)
+                printf("checkclient ");
+
 }
 
 static struct xtables_match coova_mt_reg = {

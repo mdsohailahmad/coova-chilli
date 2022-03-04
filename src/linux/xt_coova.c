@@ -264,7 +264,7 @@ coova_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	if (hwaddr)
 		memcpy(e->hwaddr, hwaddr, ETH_ALEN);
 
-	if (e->state) {
+	if (e->state && !info->check) {
 		if (info->side == XT_COOVA_DEST) {
 			e->bytes_out += (uint64_t) p_bytes;
 			e->pkts_out ++;
