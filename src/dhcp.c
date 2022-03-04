@@ -435,6 +435,11 @@ int dhcp_send(struct dhcp_t *this, int idx,
               unsigned char *hismac, uint8_t *packet, size_t length) {
   net_interface *iface = 0;
 
+#ifdef HAVE_NETFILTER_COOVA
+        if(_options.kname)
+                return 0;
+#endif
+
   if (_options.tcpwin)
     pkt_shape_tcpwin(pkt_iphdr(packet), _options.tcpwin);
 
