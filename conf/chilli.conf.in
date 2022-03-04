@@ -21,3 +21,7 @@ include @ETCCHILLI@/local.conf
 
 ipup=@ETCCHILLI@/up.sh
 ipdown=@ETCCHILLI@/down.sh
+
+seskeepalive
+usestatusfile "sessions"
+statedir "@VARRUN@/chilli"

@@ -5,8 +5,8 @@
 TUNTAP=$(basename $DEV)
 echo $TUNTAP > $RUN_D/tunname
 
-CHILLI_DO=@VARRUN@/chilli.${TUNTAP}-do.sh
-CHILLI_UNDO=@VARRUN@/chilli.${TUNTAP}-undo.sh
+CHILLI_DO=$RUN_D/${TUNTAP}-do.sh
+CHILLI_UNDO=$RUN_D/${TUNTAP}-undo.sh
 
 ipt() {
         opt=$1; shift

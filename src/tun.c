@@ -119,12 +119,7 @@ int tun_name2idx(struct tun_t *tun, char *name) {
 
       newif = tun_newif(tun, &netif);
       if (newif) {
-#ifdef HAVE_NETFILTER_COOVA
-	int promisc = _options.kname ? 0 : 1;
-	if (net_init(newif, 0, ETH_P_ALL, promisc, 0) < 0) {
-#else
 	if (net_init(newif, 0, ETH_P_ALL, 1, 0) < 0) {
-#endif
 	  syslog(LOG_ERR, "%s: net_init", strerror(errno));
 	}
 	else {
@@ -302,12 +297,7 @@ int tun_discover(struct tun_t *this) {
       net_interface *newif = tun_newif(tun, &netif);
 
       if (newif) {
-#ifdef HAVE_NETFILTER_COOVA
-	int promisc = _options.kname ? 0 : 1;
-	if (net_init(newif, 0, ETH_P_ALL, promisc, 0) < 0) {
-#else
 	if (net_init(newif, 0, ETH_P_ALL, 1, 0) < 0) {
-#endif
 	  syslog(LOG_ERR, "%s: net_init", strerror(errno));
 	}
 
@@ -584,11 +574,6 @@ int tuntap_interface(struct _net_interface *netif) {
       | IFF_ONE_QUEUE
 #endif
       ;
-
- #ifdef HAVE_NETFILTER_COOVA
-  if(_options.kname)
-         ifr.ifr_flags &= ~IFF_PROMISC;
- #endif
 
   if (_options.tundev && *_options.tundev &&
       strcmp(_options.tundev, "tap") && strcmp(_options.tundev, "tun"))

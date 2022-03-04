@@ -157,42 +157,87 @@ kmod_coova_sync(void) {
 	      continue;
       }
 
-      if (!dhcp_getconn(dhcp, &conn, mac, NULL, _options.bridgemode)) {
-	   struct app_conn_t *appconn = conn->peer;
+      if (!dhcp_getconn(dhcp, &conn, mac, NULL, 1)) {
+	      struct app_conn_t *appconn = conn->peer;
 
-	   if(_options.bridgemode && !appconn->uplink && dhcp->cb_request) {
-		struct in_addr in_ip;
+	      if (!appconn)
+		      continue;
 
-		if (!inet_aton(ip, &in_ip)) {
-		       syslog(LOG_ERR, "Invalid IP Address: %s\n", ip);
-		       return -1;
-		}
+	      if (appconn->hisip.s_addr && in_ip.s_addr && appconn->hisip.s_addr != in_ip.s_addr) {
+		      char *oldIp = strdup(inet_ntoa(appconn->hisip));
+		      syslog(LOG_ERR, "Client MAC " MAC_FMT " changed IP from %s to %s, deleting client", MAC_ARG(mac), oldIp, ip);
+		      dhcp_freeconn (conn, RADIUS_TERMINATE_CAUSE_USER_ERROR);
+		      free (oldIp);
+		      continue;
+	      }
 
-		if(_options.debug)
-		       syslog(LOG_DEBUG, "Called cb_request for %s\n", ip);
+	      // set client last seen time
+	      conn->lasttime = timestamp;
+	      if (appconn) {
+		      appconn->s_state.last_up_time = appconn->s_state.last_time = timestamp;
 
-                if(!dhcp->cb_request(conn, in_ip, NULL, 0)) {
-		       if(_options.debug)
-		            syslog(LOG_DEUBG, "cb_request returned error for %s\n", ip);
-		}
-          }
+		      /*
+		       * Call dhcp->cb_request to allocate ip address
+		       * do mac auth stuff
+		       */
+		      if(!appconn->uplink && dhcp->cb_request) {
+			      if(dhcp->cb_request(conn, &in_ip, NULL, 0)) {
+				      syslog(LOG_ERR, "Unable to create new client for %s\n", ip);
+				      // try to kick the client out of kernel module
+				      // will appear again anyway if it is really present
+				      kmod('*', &in_ip);
+			      }
+		      }
 
-          if (appconn) {
-            if (_options.swapoctets) {
-              appconn->s_state.input_octets = bin;
-              appconn->s_state.output_octets = bout;
-              appconn->s_state.input_packets = pin;
-              appconn->s_state.output_packets = pout;
-            } else {
-              appconn->s_state.output_octets = bin;
-              appconn->s_state.input_octets = bout;
-              appconn->s_state.output_packets = pin;
-              appconn->s_state.input_packets = pout;
-            }
-          } else {
-            syslog(LOG_DEBUG, "Unknown entry");
-          }
-        }
+		      if (_options.swapoctets) {
+			      appconn->s_state.input_octets = bin;
+			      appconn->s_state.output_octets = bout;
+			      appconn->s_state.input_packets = pin;
+			      appconn->s_state.output_packets = pout;
+		      } else {
+			      /*
+			       * Synchronize authentication state of appconn and
+			       * kernel module to update kernel module on firewall restarts
+			       *
+			       * Simiarly add up counters if kernel module reports less number
+			       * compared to what we already have
+			       */
+
+			      if(appconn->s_state.authenticated != state)
+				      kmod_coova_update(appconn);
+			      /*
+				 if(bin < appconn->s_state.output_octets)
+				 appconn->s_state.output_octets += bin;
+				 else
+				 */
+			      appconn->s_state.output_octets = bin;
+
+			      /*
+				 if(bout < appconn->s_state.input_octets)
+				 appconn->s_state.input_octets += bout;
+				 else
+				 */
+			      appconn->s_state.input_octets = bout;
+
+			      /*
+				 if(pin < appconn->s_state.output_packets)
+				 appconn->s_state.output_packets += pin;
+				 else
+				 */
+			      appconn->s_state.output_packets = pin;
+
+			      /*
+				 if(pout < appconn->s_state.input_packets)
+				 appconn->s_state.input_packets += pout;
+				 else
+				 */
+			      appconn->s_state.input_packets = pout;
+		      }
+	      } else {
+		      syslog(LOG_DEBUG, "Unknown entry");
+	      }
+      }
+
 #ifdef ENABLE_LAYER3
       }
 #endif
